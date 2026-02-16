@@ -7,22 +7,22 @@ on:
         description: "OpenWrt version"
         type: string
         required: true
-        default: "SNAPSHOT"
+        default: "23.05.3"
       openwrt_arch:
         description: "OpenWrt arch"
         type: string
         required: true
-        default: "aarch64_cortex-a53"
+        default: "mipsel_24kc"
       openwrt_target:
         description: "OpenWrt target"
         type: string
         required: true
-        default: "mediatek"
+        default: "ramips"
       openwrt_subtarget:
         description: "OpenWrt subtarget"
         type: string
         required: true
-        default: "filogic"
+        default: "mt7621"
 
 jobs:
   build:
