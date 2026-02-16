@@ -35,16 +35,28 @@ jobs:
     - name: Download and prepare SDK
       run: |
         set -e -x
+
+        # ---- FIX Git network stability ----
+        git config --global http.version HTTP/1.1
+        git config --global http.postBuffer 524288000
+        git config --global http.lowSpeedLimit 0
+        git config --global http.lowSpeedTime 999999
+        git config --global core.compression 0
+        # -----------------------------------
+
         if [ "${{ inputs.openwrt_version }}" = "SNAPSHOT" ]; then
           base_url="https://downloads.openwrt.org/snapshots/targets/${{ inputs.openwrt_target }}/${{ inputs.openwrt_subtarget }}/"
         else
           base_url="https://downloads.openwrt.org/releases/${{ inputs.openwrt_version }}/targets/${{ inputs.openwrt_target }}/${{ inputs.openwrt_subtarget }}/"
         fi
+
         sdk_url=$(curl -s "${base_url}" | grep -oP 'href="openwrt-sdk[^"]+\.tar\.(zst|xz)"' | sed -e 's/href="//' -e 's/"$//' | head -n1)
+
         if [[ -z "$sdk_url" ]]; then
           echo "SDK file not found."
           exit 1
         fi
+
         curl -fsLO "$base_url$sdk_url"
         file_name=$(basename "$sdk_url")
         tar -xf "$file_name"
@@ -55,8 +67,13 @@ jobs:
         mkdir -p openwrt/package/kmod-amneziawg
         cp Makefile openwrt/package/kmod-amneziawg/
 
-        # Update feeds
-        ./openwrt/scripts/feeds update -a
+        # Update feeds (WITH RETRY)
+        for i in 1 2 3; do
+          ./openwrt/scripts/feeds update -a && break
+          echo "Feeds update failed, retry $i..."
+          sleep 15
+        done
+
         ./openwrt/scripts/feeds install -a
 
         # Configure
